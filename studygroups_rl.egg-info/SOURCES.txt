@@ -1,0 +1,5 @@
+setup.py
+studygroups_rl.egg-info/PKG-INFO
+studygroups_rl.egg-info/SOURCES.txt
+studygroups_rl.egg-info/dependency_links.txt
+studygroups_rl.egg-info/top_level.txt
