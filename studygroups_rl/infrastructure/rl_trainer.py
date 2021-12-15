@@ -80,12 +80,20 @@ class RL_Trainer(object):
         # init vars at beginning of training
         self.total_envsteps = 0
         self.start_time = time.time()
+        
+        with open("best_ae_trained.pkl", "rb") as file:
+            best_model = pickle.load(file)
+        # dec_actor.ae=best_model.ae
+        # dec_actor.ae.to(ptu.device)
+        # dec_actor.mu.to(ptu.device)
+        self.agent.actor.ae = best_model.ae
+        self.agent.actor.ae.to(ptu.device)
 
         #Load train, eval trajectories here
 
 
-        print_period = 1000 if isinstance(self.agent, AWACAgent) else 1
-
+        print_period = 1#1000 if isinstance(self.agent, AWACAgent) else 1
+        print("Iterations planned:", n_iter)
         for itr in range(n_iter):
             if itr % print_period == 0:
                 print("\n\n********** Iteration %i ************"%itr)
@@ -99,7 +107,7 @@ class RL_Trainer(object):
                 self.logmetrics = False
 
 
-            paths = self.collect_training_trajectories(self.train_indices, 1000)
+            paths = self.collect_training_trajectories(self.train_indices, 5)
 
             # add collected data to replay buffer
             # if isinstance(self.agent, AWACAgent):
@@ -181,10 +189,6 @@ class RL_Trainer(object):
             
 
     def train_agent(self, paths):
-        with open("best_ae_trained.pkl", "rb") as file:
-            best_model = pickle.load(file)
-        dec_actor=best_model
-        self.agent.actor = dec_actor
         all_logs = []
         idxs = np.random.permutation(np.arange(len(paths)))
         for train_step in range(self.params['num_agent_train_steps_per_iter']):
@@ -254,7 +258,7 @@ class RL_Trainer(object):
         print("\n~Running Evaluation~ \n")
         # Run eval
         # eval_paths, eval_envsteps_this_batch = utils.sample_trajectories(self.eval_env, self.agent.eval_policy, self.params['eval_batch_size'], self.params['ep_len'])
-        eval_paths = self.collect_training_trajectories(self.eval_indices, num_transitions_to_sample=100)
+        eval_paths = self.collect_training_trajectories(self.eval_indices, num_transitions_to_sample=10)
         logs.update(self.eval_agent(eval_paths))
 
         # logs['Buffer size'] = self.agent.replay_buffer.num_in_buffer

@@ -94,7 +94,7 @@ def main():
 
     parser.add_argument('--num_agent_train_steps_per_iter', type=int, default=1)
     parser.add_argument('--num_critic_updates_per_agent_update', type=int, default=10)
-    parser.add_argument('--num_actor_updates_per_agent_update', type=int, default=50)
+    parser.add_argument('--num_actor_updates_per_agent_update', type=int, default=20)
 
     parser.add_argument('--batch_size', '-b', type=int, default=20) #steps collected per train iteration
     parser.add_argument('--eval_batch_size', '-eb', type=int, default=3) #steps collected per eval iteration

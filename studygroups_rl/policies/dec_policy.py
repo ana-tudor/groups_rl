@@ -46,6 +46,12 @@ class SimpleDECPolicy(BasePolicy):
             self.learning_rate
         )
         self.mu_initialized = False
+    
+    def send_to_device(self):
+        self.ae.to(ptu.device)
+        self.mu.to(ptu.device)
+        self.dec_optimizer.to(ptu.device)
+        # self.
 
     def update_ae(self, obs: np.ndarray) -> dict:
         if len(obs.shape) > 1:
@@ -62,44 +68,49 @@ class SimpleDECPolicy(BasePolicy):
 
         return {"Autoencoder loss": loss.item()}
 
-    def initialize_centers(self, obs: np.ndarray):
+    def initialize_centers(self, obs):
         """
         Initialize cluster centers mu using k means in the latent space,
           before further iteration on cluster centers
         """
-        if len(obs.shape) > 1:
-            observation = ptu.from_numpy(obs)
-        else:
-            observation = ptu.from_numpy(obs[None])
+        # if len(obs.shape) > 1:
+        #     observation = ptu.from_numpy(obs)
+        # else:
+        #     observation = ptu.from_numpy(obs[None])
         #Latent space representation of obs!
-        z = self.encode(observation)
+        z = self.encode(obs)
         kmeans = KMeans(n_clusters = self.k)
-        kmeans.fit(z.detach().numpy())
+        kmeans.fit(ptu.to_numpy(z))
 
         clusters = kmeans.labels_
         assert torch.sum(self.mu) == 0, "Cluster centers must be zero upon initialization"
         centroids = ptu.from_numpy(kmeans.cluster_centers_)
         centroids.requires_grad=True
         centroids.to(ptu.device)
-        self.mu = nn.Parameter(centroids)
+        self.mu = nn.Parameter(centroids).to(ptu.device)
         
         # self.mu = self.mu + ptu.from_numpy(kmeans.cluster_centers_)
         # self.dec_optimizer.add_param_group({"params":self.mu})
         return clusters
 
     def encode(self, observation: torch.FloatTensor):
-        return self.encoder.forward(observation)
+        return self.encoder.forward(observation).to(ptu.device)
 
     def forward(self, observation: torch.FloatTensor):
         """
         Calculates latent space representation of observation, generates soft 
           centroid assignments
         """
+        if (torch.sum(self.mu) == 0):
+            self.initialize_centers(observation)
         # print(observation.size)
         n = observation.size()[0]
         # q_pre = torch.zeros((n, self.k),requires_grad=True, device=ptu.device)
 
         z = self.encode(observation)
+        # print(ptu.device)
+        # print(z.get_device())
+        # print("mu",self.mu.get_device())
 
         q_pre2 = torch.subtract(z.unsqueeze(0), self.mu.unsqueeze(1))
         q_pre1 = torch.norm( q_pre2, p=2, dim=2).T
@@ -181,9 +192,9 @@ class SimpleDECPolicy(BasePolicy):
         mus_sorted = torch.argsort(mu_freq)
         # print(mus_sorted.)
 
-        groups = torch.zeros((self.k,self.group_size,self.latent_dim))
+        groups = torch.zeros((self.k,self.group_size,self.latent_dim)).to(ptu.device)
         # new_groups = torch.zeros((self.k, self.group_size,self.latent_dim))
-        stud_assignments = torch.zeros((n,1))
+        stud_assignments = torch.zeros((n,1)).to(ptu.device)
 
         for mu in mus_sorted:
             studs_mu = torch.argsort(p[:,mu], descending=True)[:self.group_size]
@@ -231,14 +242,14 @@ class SimpleDECPolicy(BasePolicy):
         #Calculate log prob that each group of students gets assigned together as in the action
         # log_prob_actions = torch.zeros(observations.size()[0])
         # group_score = None
-        scores = torch.zeros(1,requires_grad=True)
+        scores = torch.zeros(1,requires_grad=True).to(ptu.device)
 
 
         for ac in set(acs):
             stud_probs = action_dist[acs==ac]#torch.gather(input=action_dist, dim=0, index=ptu.from_numpy(acs==ac).type(torch.int64))print(stud_probs.size())
-            print(stud_probs.size())
+            # print(stud_probs.size())
             group_score = torch.log(torch.max(torch.prod(stud_probs,dim=0)))
-            print(group_score.size())
+            # print(group_score.size())
 
             scores = scores+ torch.sum(group_score*adv_n[acs==ac])
 
