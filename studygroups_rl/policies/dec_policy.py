@@ -235,10 +235,12 @@ class SimpleDECPolicy(BasePolicy):
 
 
         for ac in set(acs):
-            stud_probs = action_dist[acs==ac]#torch.gather(input=action_dist, dim=0, index=ptu.from_numpy(acs==ac).type(torch.int64))
+            stud_probs = action_dist[acs==ac]#torch.gather(input=action_dist, dim=0, index=ptu.from_numpy(acs==ac).type(torch.int64))print(stud_probs.size())
+            print(stud_probs.size())
             group_score = torch.log(torch.max(torch.prod(stud_probs,dim=0)))
+            print(group_score.size())
 
-            scores = scores+ group_score*adv_n[acs==ac]
+            scores = scores+ torch.sum(group_score*adv_n[acs==ac])
 
 
         loss = torch.mean(-scores)/(observations.size()[0])
