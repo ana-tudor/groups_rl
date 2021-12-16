@@ -120,7 +120,7 @@ class AWACAgent(BaseAgent):
 
         pred_groups, new_mus = self.actor.get_action_nearest_mu(ptu.from_numpy(ob_no[:,:self.input_dim]))
         # pred_groups = ptu.to_numpy(pred_groups)
-        obs_new = self.permute_state(ob_no, pred_groups)
+        obs_new = self.permute_state(ptu.from_numpy(ob_no[:,:self.input_dim]), pred_groups)
         
         results['Eval loss for actor predicted groups'] = self.critic.get_v(obs_new)
 

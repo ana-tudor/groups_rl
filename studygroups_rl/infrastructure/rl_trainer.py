@@ -227,10 +227,12 @@ class RL_Trainer(object):
                 all_logs["Eval Mean KL Loss"].append(eval_log['Eval KL Loss'])
                 all_logs["Eval Mean AC Loss"].append(eval_log['Eval AC Loss'])
                 all_logs["Eval Mean Critic Loss"].append(eval_log['Eval value critic loss'])
+                all_logs["Eval critic value for actor clustering"].append(eval_log['Eval loss for actor predicted groups'])
 
         log_means  = {"Eval Mean KL Loss":np.mean(all_logs["Eval Mean KL Loss"]),
                         "Eval Mean AC Loss":np.mean(all_logs["Eval Mean AC Loss"]),
-                        "Eval Mean Critic Loss":np.mean(all_logs["Eval Mean Critic Loss"])}
+                        "Eval Mean Critic Loss":np.mean(all_logs["Eval Mean Critic Loss"]),
+                        "Eval mean critic value for actor clustering":np.mean(all_logs["Eval critic value for actor clustering"])}
         return log_means
 
 
