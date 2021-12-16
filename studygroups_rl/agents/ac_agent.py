@@ -24,6 +24,7 @@ class AWACAgent(BaseAgent):
         self.num_param_updates = 0
         self.target_update_freq = agent_params['target_update_freq']
         self.input_dim = agent_params['input_dim']
+        self.group_size = agent_params['group_size']
 
         self.actor = SimpleDECPolicy(self.agent_params)
         self.critic = BootstrappedContinuousCritic(self.agent_params)
@@ -40,7 +41,7 @@ class AWACAgent(BaseAgent):
         #Actor should be loaded with pre-trained auto-encoder
 
         #Then initiate actor-critic learning
-        # print(ob_no.shape)
+        # print(ob_no.size())
         torch.autograd.set_detect_anomaly(True)
 
         for i in range(self.agent_params['num_critic_updates_per_agent_update']):
@@ -117,6 +118,27 @@ class AWACAgent(BaseAgent):
 
         results['Eval value critic loss'] =  self.critic.update(ob_no, ac_na, next_ob_no, re_n, terminal_n,eval=True)['Training Loss']
 
+        pred_groups, new_mus = self.actor.get_action_nearest_mu(ptu.from_numpy(ob_no[:,:self.input_dim]))
+        # pred_groups = ptu.to_numpy(pred_groups)
+        obs_new = self.permute_state(ob_no, pred_groups)
+        
+        results['Eval loss for actor predicted groups'] = self.critic.get_v(obs_new)
+
         return results
+
+    def permute_state(self, ob, acs):
+        big_ob = torch.zeros((ob.size()[0], self.group_size*self.input_dim+1))
+        for ac in set(ptu.to_numpy(acs)):
+            idxs = acs==ac
+            group_obs = ob[idxs]
+            group_preds = torch.zeros((self.group_size, self.group_size*self.input_dim+1))
+            for i in range(self.group_size):
+                group_preds[i, :self.input_dim] = group_obs[i]
+                # other_mems = np.arange(self.group_size)[np.arange(self.group_size) != i]
+                group_preds[i, self.input_dim:-1] = torch.flatten(group_obs[torch.arange(self.group_size) != i])
+                group_preds[i, -1] = ac
+
+            big_ob[idxs] = group_preds
+        return big_ob
 
         
