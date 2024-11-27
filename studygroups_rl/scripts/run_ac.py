@@ -105,7 +105,7 @@ def main():
     parser.add_argument('--dont_standardize_advantages', '-dsa', action='store_true')
     parser.add_argument('--num_target_updates', '-ntu', type=int, default=10)
     parser.add_argument('--target_update_freq', '-tuf', type=int, default=10)
-    parser.add_argument('--num_grad_steps_per_target_update', '-ngsptu', type=int, default=10)
+    parser.add_argument('--num_grad_steps_per_target_update', '-ngsptu', type=int, default=2)
     
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--no_gpu', '-ngpu', action='store_true')

@@ -215,7 +215,11 @@ class SimpleDECPolicy(BasePolicy):
 
 
     def update_policy_AWAC(self, obs: np.ndarray, acs: np.ndarray, adv_n: np.ndarray, eval=False, **kwargs) -> dict:
-        """Return a dictionary of logging information."""
+        """
+        Update the policy network utilizing AWAC update
+        Return a dictionary of logging information.
+        """
+
         if adv_n is None:
             assert False, "Did not pass advantages"
         if isinstance(obs, np.ndarray):
@@ -227,39 +231,23 @@ class SimpleDECPolicy(BasePolicy):
         
         torch.autograd.set_detect_anomaly(True)
 
-        # observation =torch.gather(
-        #     observations, 
-        #     dim=-1, 
-        #     index=torch.arange(self.agent_params["input_dim"])
-        # )
-
-        # Update the policy network utilizing AWAC update
-
         action_dist, q, z = self.forward(observations)
         
-        # log_prob_actions = torch.log(torch.gather(action_dist, dim=1, index=actions))
-        # 
         #Calculate log prob that each group of students gets assigned together as in the action
-        # log_prob_actions = torch.zeros(observations.size()[0])
-        # group_score = None
+
         scores = torch.zeros(1,requires_grad=True).to(ptu.device)
 
-
         for ac in set(acs):
-            stud_probs = action_dist[acs==ac]#torch.gather(input=action_dist, dim=0, index=ptu.from_numpy(acs==ac).type(torch.int64))print(stud_probs.size())
-            # print(stud_probs.size())
+            stud_probs = action_dist[acs==ac]
+
             group_score = torch.log(torch.max(torch.prod(stud_probs,dim=0)))
-            # print(group_score.size())
 
             scores = scores+ torch.sum(group_score*adv_n[acs==ac])
 
 
         loss = torch.mean(-scores)/(observations.size()[0])
-        # loss = - log_prob_actions * torch.exp(adv_n/self.lambda_awac)
-        # actor_loss = loss.mean()
 
         if not eval:
-
             self.dec_optimizer.zero_grad()
             loss.backward()
             self.dec_optimizer.step()
